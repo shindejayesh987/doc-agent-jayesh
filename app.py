@@ -391,7 +391,7 @@ if st.session_state.tree is None and st.session_state.index_status not in ("runn
 
             pdf_bytes = uploaded.read()
             provider_obj = st.session_state.provider_obj
-            prov_cfg = _PROVIDERS.get(st.session_state.get("provider_key", "gemini"), _PROVIDERS["gemini"])
+            prov_cfg = _PROVIDERS.get(st.session_state.get("provider_key", "anthropic"), _PROVIDERS["anthropic"])
 
             opt = SimpleNamespace(
                 provider=provider_obj,
