@@ -13,3 +13,6 @@ log/*
 logs/
 parts/*
 json_results/*
+LOCAL_PROGRESS.md
+*.full
+*.full.bak
