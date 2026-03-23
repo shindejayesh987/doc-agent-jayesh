@@ -127,6 +127,7 @@ def _init_state():
         "active_doc_ids": [],       # doc_ids selected for current chat
         "provider_obj": None,
         "provider_key": "gemini",   # default provider
+        "provider_model": "",
         # Chat
         "messages": [],
         "active_conversation_id": None,
@@ -214,6 +215,129 @@ _PROVIDERS = {
         "free": False, "chunk_budget": 20_000, "concurrency": 2, "inter_call_delay": 2.0,
     },
 }
+
+
+# ── User-friendly error mapper ────────────────────────────────────────────────
+_PROVIDER_KEY_URLS = {
+    "gemini": "aistudio.google.com/apikey",
+    "groq": "console.groq.com/keys",
+    "openrouter": "openrouter.ai/keys",
+    "mistral": "console.mistral.ai/api-keys",
+    "openai": "platform.openai.com/api-keys",
+    "anthropic": "console.anthropic.com/settings/keys",
+}
+
+
+def _friendly_error(exc: Exception, provider_key: str = "", model: str = "") -> str:
+    """Map raw exceptions to user-friendly messages with actionable suggestions."""
+    err = str(exc).lower()
+    exc_type = type(exc).__name__.lower()
+    key_url = _PROVIDER_KEY_URLS.get(provider_key, "")
+    provider_label = _PROVIDERS.get(provider_key, {}).get("label", provider_key).split()[0]
+    available_models = _PROVIDERS.get(provider_key, {}).get("models", [])
+
+    # ── API key errors ────────────────────────────────────────────────────
+    if any(k in err for k in ("authentication", "unauthorized", "invalid api key",
+                               "invalid x-api-key", "api key not valid",
+                               "api_key_invalid", "invalid_api_key", "401")):
+        msg = f"**Invalid API key** for {provider_label}."
+        if key_url:
+            msg += f"\n\nGet a valid key at **{key_url}**"
+        msg += "\n\nMake sure you're using the right key for this provider — keys from one provider won't work with another."
+        return msg
+
+    # ── Model not found ───────────────────────────────────────────────────
+    if any(k in err for k in ("not found", "not_found", "does not exist",
+                               "no longer available", "model not found")):
+        msg = f"**Model `{model}` is not available.**"
+        if available_models:
+            others = [m for m in available_models if m != model]
+            if others:
+                msg += f"\n\nTry one of these instead:\n" + "\n".join(f"- `{m}`" for m in others[:3])
+        return msg
+
+    # ── Rate limiting ─────────────────────────────────────────────────────
+    if any(k in err for k in ("rate limit", "ratelimit", "rate_limit",
+                               "too many requests", "429", "quota",
+                               "resource_exhausted", "resource exhausted")):
+        msg = f"**Rate limited** by {provider_label}."
+        msg += "\n\n**What to do:**"
+        msg += "\n- Wait 30–60 seconds and try again"
+        msg += "\n- Use a smaller PDF (fewer pages = fewer API calls)"
+        if provider_key == "groq":
+            msg += "\n- Groq has strict free-tier limits — try **Gemini** instead"
+        elif provider_key == "openrouter":
+            msg += "\n- Free models on OpenRouter have tight limits — try **Gemini** for larger docs"
+        return msg
+
+    # ── Network / connection errors ───────────────────────────────────────
+    if any(k in err for k in ("timeout", "timed out", "connect", "connection",
+                               "network", "unreachable", "dns", "ssl")):
+        if "pipeline" in err or "page_index_main" in err:
+            msg = "**Indexing timed out** — the document is too large for the current timeout."
+            msg += "\n\n**What to do:**"
+            msg += "\n- Try a smaller PDF"
+            msg += "\n- Use a faster model like `gemini-2.5-flash`"
+        else:
+            msg = f"**Connection failed** to {provider_label} API."
+            msg += "\n\n**What to do:**"
+            msg += "\n- Check your internet connection"
+            msg += "\n- The API may be temporarily down — wait a minute and retry"
+        return msg
+
+    # ── Empty/scanned PDF ─────────────────────────────────────────────────
+    if any(k in err for k in ("no pages found", "pdf appears to be empty",
+                               "no pages could be extracted")):
+        return ("**This PDF has no extractable text.**"
+                "\n\nThis usually means it's a scanned document (images of pages, not real text)."
+                "\n\n**What to do:**"
+                "\n- Run the PDF through an OCR tool (like Adobe Acrobat or ocrmypdf) first"
+                "\n- Try a different version of the document")
+
+    # ── Invalid PDF ───────────────────────────────────────────────────────
+    if any(k in err for k in ("unsupported input", "invalid pdf", "not a pdf",
+                               "pdf header")):
+        return ("**Invalid PDF file.**"
+                "\n\nThe uploaded file doesn't appear to be a valid PDF."
+                "\n\n**What to do:**"
+                "\n- Make sure you're uploading a `.pdf` file"
+                "\n- Try re-downloading or re-exporting the document as PDF")
+
+    # ── Content safety / blocked ──────────────────────────────────────────
+    if any(k in err for k in ("safety", "blocked", "content_filter", "harmful",
+                               "recitation")):
+        return ("**Content blocked** by the model's safety filter."
+                "\n\nThe model refused to process part of the document."
+                "\n\n**What to do:**"
+                "\n- Try a different model"
+                "\n- If the document contains sensitive content, try a provider with more permissive filters")
+
+    # ── Token/context limit exceeded ──────────────────────────────────────
+    if any(k in err for k in ("token", "context length", "max_tokens",
+                               "context_length_exceeded")):
+        return ("**Document exceeds the model's context limit.**"
+                "\n\n**What to do:**"
+                "\n- Try a model with a larger context window (e.g. `gemini-2.5-pro`)"
+                "\n- Use a smaller PDF")
+
+    # ── JSON parsing failures (from pipeline) ─────────────────────────────
+    if any(k in err for k in ("json", "parse_json", "expecting value",
+                               "unterminated string")):
+        return ("**The model returned an invalid response.**"
+                "\n\nThis sometimes happens with smaller/free models."
+                "\n\n**What to do:**"
+                "\n- Try again — it often works on retry"
+                "\n- Switch to a more capable model like `gemini-2.5-flash`")
+
+    # ── Fallback — unknown error ──────────────────────────────────────────
+    msg = f"**Something went wrong:** {type(exc).__name__}"
+    msg += f"\n\n`{str(exc)[:200]}`"
+    msg += "\n\n**What to do:**"
+    msg += "\n- Try again — transient errors are common with LLM APIs"
+    msg += "\n- Try a different model or provider"
+    if key_url:
+        msg += f"\n- Verify your API key at **{key_url}**"
+    return msg
 
 
 # ── Provider builder ──────────────────────────────────────────────────────────
@@ -658,13 +782,19 @@ with st.sidebar:
         st.caption("✓ Free tier available")
 
     if st.button("Apply settings", use_container_width=True):
-        with st.spinner("Connecting…"):
-            try:
-                st.session_state.provider_obj = _build_provider(provider_key, model, api_key)
-                st.session_state.provider_key = provider_key
-                st.success(f"✓ {cfg['label'].split()[0]} / {model}")
-            except Exception as e:
-                st.error(f"Failed: {e}")
+        if not api_key.strip() and not os.environ.get("GEMINI_API_KEY") and not os.environ.get("GOOGLE_API_KEY"):
+            key_url = _PROVIDER_KEY_URLS.get(provider_key, "")
+            st.error(f"**API key required.** Enter your {cfg['label'].split()[0]} key above."
+                     + (f"\n\nGet one free at **{key_url}**" if key_url else ""))
+        else:
+            with st.spinner("Connecting…"):
+                try:
+                    st.session_state.provider_obj = _build_provider(provider_key, model, api_key)
+                    st.session_state.provider_key = provider_key
+                    st.session_state.provider_model = model
+                    st.success(f"✓ {cfg['label'].split()[0]} / {model}")
+                except Exception as e:
+                    st.error(_friendly_error(e, provider_key, model))
 
     st.divider()
 
@@ -792,12 +922,16 @@ if st.session_state.index_status not in ("running",):
         with col1:
             st.markdown(f"**{uploaded.name}** — {uploaded.size / 1024:.0f} KB")
         with col2:
-            go = st.button("Index document", type="primary", use_container_width=True)
+            provider_ready = st.session_state.provider_obj is not None
+            go = st.button(
+                "Index document", type="primary", use_container_width=True,
+                disabled=not provider_ready,
+            )
+
+        if not provider_ready:
+            st.info("**Configure your LLM provider first** — select a provider, enter your API key, and click **Apply settings** in the sidebar.")
 
         if go:
-            if st.session_state.provider_obj is None:
-                st.warning("Click **Apply settings** in the sidebar first.")
-                st.stop()
 
             pdf_bytes = uploaded.read()
             provider_obj = st.session_state.provider_obj
@@ -868,14 +1002,19 @@ if st.session_state.index_status == "running":
     st.rerun()
 
 elif st.session_state.index_status == "error":
-    st.error(f"**Indexing failed:** {st.session_state.index_error}")
+    # Show user-friendly error with suggestions
+    raw_error = st.session_state.index_error
+    pkey = st.session_state.get("provider_key", "")
+    pmodel = st.session_state.get("provider_model", "")
+    friendly_msg = _friendly_error(Exception(raw_error), pkey, pmodel)
+    st.error(friendly_msg)
     if st.session_state.index_log:
-        with st.expander("Error details", expanded=True):
+        with st.expander("Technical details (for debugging)", expanded=False):
             st.markdown(
-                f'<div class="progress-box">{"<br>".join(st.session_state.index_log)}</div>',
+                f'<div class="progress-box">{"<br>".join(st.session_state.index_log[-20:])}</div>',
                 unsafe_allow_html=True,
             )
-    if st.button("Try again"):
+    if st.button("Try again", type="primary"):
         st.session_state.index_status = "idle"
         st.rerun()
 
@@ -913,7 +1052,7 @@ if st.session_state.active_doc_ids:
 
     if question:
         if st.session_state.provider_obj is None:
-            st.warning("Apply provider settings first.")
+            st.warning("**Provider not configured.** Select a provider, enter your API key, and click **Apply settings** in the sidebar.")
         else:
             # Save user message
             st.session_state.messages.append({"role": "user", "content": question})
@@ -945,7 +1084,9 @@ if st.session_state.active_doc_ids:
                                 st.session_state.messages[:-1],  # history without current Q
                             )
                     except Exception as exc:
-                        answer = f"Error: {exc}"
+                        pkey = st.session_state.get("provider_key", "")
+                        pmodel = st.session_state.get("provider_model", "")
+                        answer = _friendly_error(exc, pkey, pmodel)
 
                     latency = int((time.time() - start_t) * 1000)
 

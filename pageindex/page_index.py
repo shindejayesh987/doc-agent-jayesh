@@ -658,10 +658,14 @@ async def add_page_number_to_toc(part, structure, provider=None):
     prompt = fill_prompt_seq + f"\n\nCurrent Partial Document:\n{part}\n\nGiven Structure\n{json.dumps(structure, indent=2)}\n"
     json_result = await _llm_json(provider, prompt)
 
+    cleaned = []
     for item in json_result:
+        if not isinstance(item, dict):
+            continue
         if 'start' in item:
             del item['start']
-    return json_result
+        cleaned.append(item)
+    return cleaned
 
 
 def remove_first_physical_index_section(text):
@@ -882,7 +886,7 @@ async def process_none_page_numbers(toc_items, page_list, start_index=1, model=N
             item_copy = copy.deepcopy(item)
             del item_copy['page']
             result = await add_page_number_to_toc(page_contents, item_copy, provider)
-            if isinstance(result[0]['physical_index'], str) and result[0]['physical_index'].startswith('<physical_index'):
+            if result and isinstance(result[0], dict) and isinstance(result[0].get('physical_index'), str) and result[0]['physical_index'].startswith('<physical_index'):
                 item['physical_index'] = int(result[0]['physical_index'].split('_')[-1].rstrip('>').strip())
                 del item['page']
 
