@@ -139,6 +139,10 @@ def _init_state():
         "indexing_doc_id": None,    # doc_id being indexed
         "indexing_doc_name": None,  # filename being indexed
         "indexing_start_time": None,
+        # Multi-doc queue: [{"name": ..., "bytes": ..., "doc_id": ...}, ...]
+        "index_queue": [],
+        "index_completed_count": 0,
+        "index_total_count": 0,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -646,6 +650,63 @@ def _run_indexing(pdf_bytes, provider_obj, opt, q, doc_id=None, sb_ref=None):
         root_pi.removeHandler(handler)
 
 
+# ── Start indexing a single document ──────────────────────────────────────────
+def _start_indexing_one(pdf_bytes, doc_name, doc_id):
+    """Kick off indexing for one document. Sets session state and spawns thread."""
+    provider_obj = st.session_state.provider_obj
+    prov_cfg = _PROVIDERS.get(
+        st.session_state.get("provider_key", "gemini"), _PROVIDERS["gemini"]
+    )
+
+    # Create Supabase record
+    if sb and "user_id" in st.session_state:
+        try:
+            sb.table("documents").insert({
+                "id": doc_id,
+                "user_id": st.session_state.user_id,
+                "name": doc_name,
+                "file_size_bytes": len(pdf_bytes),
+                "status": "uploaded",
+                "provider_used": st.session_state.get("provider_key", "gemini"),
+                "model_used": st.session_state.get("provider_model", ""),
+            }).execute()
+        except Exception as e:
+            logging.getLogger(__name__).warning("Failed to create doc record: %s", e)
+
+    opt = SimpleNamespace(
+        provider=provider_obj,
+        toc_check_page_num=20,
+        max_page_num_each_node=10,
+        max_token_num_each_node=prov_cfg["chunk_budget"],
+        if_add_node_id="yes",
+        if_add_node_text="no",
+        if_add_node_summary="no",
+        if_add_doc_description="no",
+        pipeline=SimpleNamespace(
+            timeout_seconds=3600,
+            concurrency=prov_cfg["concurrency"],
+            chunk_token_budget=prov_cfg["chunk_budget"],
+            inter_call_delay=prov_cfg.get("inter_call_delay", 0.5),
+        ),
+    )
+
+    q = queue.Queue()
+    st.session_state.log_queue = q
+    st.session_state.index_status = "running"
+    st.session_state.index_log = []
+    st.session_state.index_error = ""
+    st.session_state.indexing_doc_id = doc_id
+    st.session_state.indexing_doc_name = doc_name
+    st.session_state.indexing_start_time = time.time()
+
+    t = threading.Thread(
+        target=_run_indexing,
+        args=(pdf_bytes, provider_obj, opt, q, doc_id, sb),
+        daemon=True,
+    )
+    t.start()
+
+
 # ── Drain the log queue ──────────────────────────────────────────────────────
 def _drain_queue():
     q = st.session_state.log_queue
@@ -674,12 +735,27 @@ def _drain_queue():
                 if doc_id not in st.session_state.active_doc_ids:
                     st.session_state.active_doc_ids.append(doc_id)
 
-            st.session_state.index_status = "done"
+            st.session_state.index_completed_count += 1
             st.session_state.log_queue = None
+
+            # Auto-start next in queue
+            if st.session_state.index_queue:
+                next_item = st.session_state.index_queue.pop(0)
+                _start_indexing_one(next_item["bytes"], next_item["name"], next_item["doc_id"])
+            else:
+                st.session_state.index_status = "done"
+
         elif kind == "error":
-            st.session_state.index_status = "error"
+            st.session_state.index_completed_count += 1
             st.session_state.index_error = msg[1]
             st.session_state.log_queue = None
+
+            # On error, try next in queue (don't block the rest)
+            if st.session_state.index_queue:
+                next_item = st.session_state.index_queue.pop(0)
+                _start_indexing_one(next_item["bytes"], next_item["name"], next_item["doc_id"])
+            else:
+                st.session_state.index_status = "error"
 
 _drain_queue()
 
@@ -938,83 +1014,45 @@ st.divider()
 
 # ── Upload section ────────────────────────────────────────────────────────────
 if st.session_state.index_status not in ("running",):
-    uploaded = st.file_uploader(
-        "Upload a PDF",
+    uploaded_files = st.file_uploader(
+        "Upload PDFs",
         type=["pdf"],
         label_visibility="collapsed",
-        accept_multiple_files=False,
+        accept_multiple_files=True,
     )
 
-    if uploaded:
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.markdown(f"**{uploaded.name}** — {uploaded.size / 1024:.0f} KB")
-        with col2:
-            provider_ready = st.session_state.provider_obj is not None
-            go = st.button(
-                "Index document", type="primary", use_container_width=True,
-                disabled=not provider_ready,
-            )
+    if uploaded_files:
+        # Show file list
+        for uf in uploaded_files:
+            st.markdown(f"- **{uf.name}** — {uf.size / 1024:.0f} KB")
+
+        provider_ready = st.session_state.provider_obj is not None
+        btn_label = f"Index {len(uploaded_files)} document{'s' if len(uploaded_files) > 1 else ''}"
+        go = st.button(
+            btn_label, type="primary", use_container_width=True,
+            disabled=not provider_ready,
+        )
 
         if not provider_ready:
             st.info("**Configure your LLM provider first** — select a provider, enter your API key, and click **Apply settings** in the sidebar.")
 
         if go:
+            # Read all files and build queue
+            items = []
+            for uf in uploaded_files:
+                items.append({
+                    "name": uf.name,
+                    "bytes": uf.read(),
+                    "doc_id": str(uuid4()),
+                })
 
-            pdf_bytes = uploaded.read()
-            provider_obj = st.session_state.provider_obj
-            prov_cfg = _PROVIDERS.get(
-                st.session_state.get("provider_key", "gemini"), _PROVIDERS["gemini"]
-            )
+            st.session_state.index_total_count = len(items)
+            st.session_state.index_completed_count = 0
 
-            # Create document record in Supabase
-            doc_id = str(uuid4())
-            if sb and "user_id" in st.session_state:
-                try:
-                    sb.table("documents").insert({
-                        "id": doc_id,
-                        "user_id": st.session_state.user_id,
-                        "name": uploaded.name,
-                        "file_size_bytes": len(pdf_bytes),
-                        "status": "uploaded",
-                        "provider_used": st.session_state.get("provider_key", "gemini"),
-                        "model_used": prov_cfg.get("models", ["unknown"])[0],
-                    }).execute()
-                except Exception as e:
-                    logging.getLogger(__name__).warning("Failed to create doc record: %s", e)
-
-            opt = SimpleNamespace(
-                provider=provider_obj,
-                toc_check_page_num=20,
-                max_page_num_each_node=10,
-                max_token_num_each_node=prov_cfg["chunk_budget"],
-                if_add_node_id="yes",
-                if_add_node_text="no",
-                if_add_node_summary="no",
-                if_add_doc_description="no",
-                pipeline=SimpleNamespace(
-                    timeout_seconds=3600,
-                    concurrency=prov_cfg["concurrency"],
-                    chunk_token_budget=prov_cfg["chunk_budget"],
-                    inter_call_delay=prov_cfg.get("inter_call_delay", 0.5),
-                ),
-            )
-
-            q = queue.Queue()
-            st.session_state.log_queue = q
-            st.session_state.index_status = "running"
-            st.session_state.index_log = []
-            st.session_state.index_error = ""
-            st.session_state.indexing_doc_id = doc_id
-            st.session_state.indexing_doc_name = uploaded.name
-            st.session_state.indexing_start_time = time.time()
-
-            t = threading.Thread(
-                target=_run_indexing,
-                args=(pdf_bytes, provider_obj, opt, q, doc_id, sb),
-                daemon=True,
-            )
-            t.start()
+            # Start first, queue the rest
+            first = items[0]
+            st.session_state.index_queue = items[1:]
+            _start_indexing_one(first["bytes"], first["name"], first["doc_id"])
             st.rerun()
 
 # ── Progress display ──────────────────────────────────────────────────────────
@@ -1022,11 +1060,20 @@ if st.session_state.index_status == "running":
     doc_name = st.session_state.get("indexing_doc_name", "document")
     elapsed = time.time() - (st.session_state.get("indexing_start_time") or time.time())
     elapsed_str = f"{int(elapsed // 60)}:{int(elapsed % 60):02d}"
+    completed = st.session_state.get("index_completed_count", 0)
+    total = st.session_state.get("index_total_count", 1)
+    queued = len(st.session_state.get("index_queue", []))
 
     log_lines = st.session_state.index_log
     pct, step_label = _get_progress(log_lines)
 
-    st.markdown(f"### Indexing: {doc_name}")
+    # Multi-doc header
+    if total > 1:
+        st.markdown(f"### Indexing document {completed + 1} of {total}: {doc_name}")
+        if queued > 0:
+            st.caption(f"{queued} document{'s' if queued > 1 else ''} queued")
+    else:
+        st.markdown(f"### Indexing: {doc_name}")
 
     # Progress bar
     st.progress(min(pct, 99) / 100, text=f"{step_label}  —  {pct}%")
@@ -1064,11 +1111,14 @@ elif st.session_state.index_status == "error":
 
 # ── Completion display ───────────────────────────────────────────────────────
 if st.session_state.index_status == "done":
-    elapsed = time.time() - (st.session_state.get("indexing_start_time") or time.time())
-    elapsed_str = f"{int(elapsed // 60)}:{int(elapsed % 60):02d}"
-    doc_name = st.session_state.get("indexing_doc_name", "document")
+    total = st.session_state.get("index_total_count", 1)
+    completed = st.session_state.get("index_completed_count", 0)
 
-    st.success(f"**{doc_name}** indexed successfully in {elapsed_str}")
+    if total > 1:
+        st.success(f"**{completed} document{'s' if completed > 1 else ''} indexed successfully!**")
+    else:
+        doc_name = st.session_state.get("indexing_doc_name", "document")
+        st.success(f"**{doc_name}** indexed successfully!")
     if st.session_state.index_log:
         with st.expander("Indexing log", expanded=False):
             st.markdown(
