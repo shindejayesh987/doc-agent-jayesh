@@ -1,0 +1,619 @@
+# Instincts generated from https://github.com/shindejayesh987/doc-agent-jayesh
+# Generated: 2026-03-27T04:17:25.397Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: doc-agent-jayesh-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Commit Length
+
+## Action
+
+Keep commit messages concise (~24 characters)
+
+## Evidence
+
+- Average commit message length: 24 chars
+- Based on 200 commits
+
+---
+id: doc-agent-jayesh-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Naming Files
+
+## Action
+
+Use camelCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: camelCase
+
+---
+id: doc-agent-jayesh-import-alias
+trigger: "when importing modules"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Import Alias
+
+## Action
+
+Use path aliases (@/, ~/) instead of relative imports
+
+## Evidence
+
+- Import analysis shows alias pattern
+- Example: import { x } from '@/lib/x'
+
+---
+id: doc-agent-jayesh-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Export Style
+
+## Action
+
+Prefer named exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: named
+
+---
+id: doc-agent-jayesh-test-separate
+trigger: "when writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Test Separate
+
+## Action
+
+Place tests in the tests/ or __tests__/ directory, mirroring src structure
+
+## Evidence
+
+- Separate test directory pattern detected
+- Tests live in dedicated test folders
+
+---
+id: doc-agent-jayesh-test-naming
+trigger: "when creating a test file"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Test Naming
+
+## Action
+
+Name test files using the pattern: *.test.ts
+
+## Evidence
+
+- File pattern: *.test.ts
+- Consistent across test files
+
+---
+id: doc-agent-jayesh-workflow-database-migration
+trigger: "when modifying the database schema or adding tables"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Workflow Database Migration
+
+## Action
+
+Follow the database-migration workflow:
+1. Create migration file
+2. Update schema definitions
+3. Generate/update types
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: **/schema.*, **/types.ts, migrations/*
+
+---
+id: doc-agent-jayesh-workflow-feature-development
+trigger: "when implementing a new feature"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Workflow Feature Development
+
+## Action
+
+Follow the feature-development workflow:
+1. Add feature implementation
+2. Add tests for feature
+3. Update documentation
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~12x per month
+- Files: frontend/app/api/chat/*, frontend/app/*, frontend/*
+
+---
+id: doc-agent-jayesh-workflow-add-llm-provider
+trigger: "when doing add llm provider"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Workflow Add Llm Provider
+
+## Action
+
+Follow the add-llm-provider workflow:
+1. Create or update provider implementation file (e.g., pageindex/llm/{provider}_provider.py)
+2. Update provider factory (pageindex/llm/factory.py) to register new provider
+3. Update requirements.txt with new dependencies if needed
+4. Update app.py or backend/main.py to expose provider in UI/configuration
+5. Update or add tests for provider integration
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: pageindex/llm/factory.py, pageindex/llm/{provider}_provider.py, requirements.txt
+
+---
+id: doc-agent-jayesh-workflow-add-supabase-table-or-schema-change
+trigger: "when doing add supabase table or schema change"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Workflow Add Supabase Table Or Schema Change
+
+## Action
+
+Follow the add-supabase-table-or-schema-change workflow:
+1. Create or update Supabase migration SQL file (supabase/migrations/*.sql)
+2. Update supabase/schema.sql with new structure
+3. Update backend code to use new/changed schema (backend/main.py, backend/routes/*.py, backend/services/*.py)
+4. Update storage/supabase_client.py for CRUD operations
+5. Update or add scripts for admin/bulk operations if needed
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: supabase/migrations/*.sql, supabase/schema.sql, backend/main.py
+
+---
+id: doc-agent-jayesh-workflow-feature-development-with-ui-and-backend
+trigger: "when doing feature development with ui and backend"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Workflow Feature Development With Ui And Backend
+
+## Action
+
+Follow the feature-development-with-ui-and-backend workflow:
+1. Implement backend logic (backend/main.py, backend/routes/*.py, backend/services/*.py)
+2. Implement or update frontend UI components (frontend/components/*.tsx, frontend/app/*.ts[x])
+3. Update frontend API calls/types (frontend/lib/api.ts, frontend/lib/types.ts)
+4. Update or add scripts for admin or batch operations (scripts/*.py)
+5. Update database schema/migrations if persistence is needed (supabase/migrations/*.sql, supabase/schema.sql)
+6. Add or update tests if applicable
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: backend/main.py, backend/routes/*.py, backend/services/*.py
+
+---
+id: doc-agent-jayesh-workflow-add-or-update-github-actions-automation
+trigger: "when doing add or update github actions automation"
+confidence: 0.65
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Workflow Add Or Update Github Actions Automation
+
+## Action
+
+Follow the add-or-update-github-actions-automation workflow:
+1. Create or update workflow YAML files (.github/workflows/*.yml)
+2. Add or update supporting scripts (scripts/*.js, scripts/*.sh)
+3. Add or update documentation for commands (.claude/commands/*.md)
+4. Test workflow by running or backfilling on repo
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~3x per month
+- Files: .github/workflows/*.yml, scripts/*.js, scripts/*.sh
+
+---
+id: doc-agent-jayesh-workflow-improve-error-handling-and-user-feedback
+trigger: "when doing improve error handling and user feedback"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Workflow Improve Error Handling And User Feedback
+
+## Action
+
+Follow the improve-error-handling-and-user-feedback workflow:
+1. Update app logic to catch and map exceptions to friendly messages (app.py, backend/main.py, backend/routes/*.py)
+2. Add or improve progress indicators (progress bars, step labels) in UI
+3. Collapse technical details into expandable sections
+4. Test error scenarios and verify user experience
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: app.py, backend/main.py, backend/routes/*.py
+
+---
+id: doc-agent-jayesh-workflow-add-or-update-documentation-and-readme
+trigger: "when doing add or update documentation and readme"
+confidence: 0.65
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Workflow Add Or Update Documentation And Readme
+
+## Action
+
+Follow the add-or-update-documentation-and-readme workflow:
+1. Create or update markdown documentation files (ARCHITECTURE.md, OPTIMIZATION_PLAN.md, FUTURE_SCOPE_QA.md, README.md)
+2. Update .gitignore or related config if needed
+3. Commit with documentation-focused message
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~3x per month
+- Files: ARCHITECTURE.md, OPTIMIZATION_PLAN.md, FUTURE_SCOPE_QA.md
+
+---
+id: doc-agent-jayesh-instinct-file-naming
+trigger: "When creating a new file in the codebase"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Instinct File Naming
+
+## Action
+
+Name the file using camelCase convention
+
+## Evidence
+
+- Pattern in namingConventions.files: camelCase
+
+---
+id: doc-agent-jayesh-instinct-function-naming
+trigger: "When defining a new function"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Instinct Function Naming
+
+## Action
+
+Name the function using camelCase convention
+
+## Evidence
+
+- Pattern in namingConventions.functions: camelCase
+
+---
+id: doc-agent-jayesh-instinct-class-naming
+trigger: "When defining a new class"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Instinct Class Naming
+
+## Action
+
+Name the class using PascalCase convention
+
+## Evidence
+
+- Pattern in namingConventions.classes: PascalCase
+
+---
+id: doc-agent-jayesh-instinct-constant-naming
+trigger: "When defining a constant"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Instinct Constant Naming
+
+## Action
+
+Name the constant using SCREAMING_SNAKE_CASE
+
+## Evidence
+
+- Pattern in namingConventions.constants: SCREAMING_SNAKE_CASE
+
+---
+id: doc-agent-jayesh-instinct-import-style
+trigger: "When importing modules in Python code"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Instinct Import Style
+
+## Action
+
+Use alias import style
+
+## Evidence
+
+- Pattern in importStyle: alias
+
+---
+id: doc-agent-jayesh-instinct-export-style
+trigger: "When exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Instinct Export Style
+
+## Action
+
+Use named exports
+
+## Evidence
+
+- Pattern in exportStyle: named
+
+---
+id: doc-agent-jayesh-instinct-test-file-pattern
+trigger: "When adding a test file"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Instinct Test File Pattern
+
+## Action
+
+Name the test file with the pattern *.test.ts
+
+## Evidence
+
+- Pattern in testing.filePattern: *.test.ts
+
+---
+id: doc-agent-jayesh-instinct-test-type
+trigger: "When writing tests"
+confidence: 0.7
+domain: testing
+source: repo-analysis
+source_repo: shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Instinct Test Type
+
+## Action
+
+Write unit tests as the primary test type
+
+## Evidence
+
+- Pattern in testing.testTypes: unit
+
+---
+id: doc-agent-jayesh-instinct-git-commit-format
+trigger: "When making a commit"
+confidence: 0.8
+domain: git
+source: repo-analysis
+source_repo: shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Instinct Git Commit Format
+
+## Action
+
+Start the commit message with a lowercase verb or prefix (e.g., fix:, add:, update:), optionally referencing an issue or PR
+
+## Evidence
+
+- Seen in commit: fix: rename tob_extractor_prompt typo to toc_extractor_prompt (#109)
+- Seen in commit: Add Cloud Build auto-deploy and fix Dockerfile for Cloud Run
+
+---
+id: doc-agent-jayesh-instinct-add-llm-provider
+trigger: "When someone wants to support a new LLM provider in the app"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Instinct Add Llm Provider
+
+## Action
+
+Create or update provider implementation, register in factory, update requirements, expose in UI/config, and add tests
+
+## Evidence
+
+- Workflow: add-llm-provider
+- Files: pageindex/llm/factory.py, pageindex/llm/{provider}_provider.py, requirements.txt, app.py, backend/main.py
+
+---
+id: doc-agent-jayesh-instinct-add-supabase-table-or-schema-change
+trigger: "When someone wants to add or modify a database table, column, or policy in Supabase"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Instinct Add Supabase Table Or Schema Change
+
+## Action
+
+Create/update migration SQL, update schema.sql, update backend/services, update storage client, update scripts as needed
+
+## Evidence
+
+- Workflow: add-supabase-table-or-schema-change
+- Files: supabase/migrations/*.sql, supabase/schema.sql, backend/main.py, backend/routes/*.py, backend/services/*.py, storage/supabase_client.py, scripts/*.py
+
+---
+id: doc-agent-jayesh-instinct-feature-development-with-ui-and-backend
+trigger: "When someone wants to add a major feature spanning backend, frontend, and persistence"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Instinct Feature Development With Ui And Backend
+
+## Action
+
+Implement backend logic, update frontend UI/components, update API/types, update scripts, update database schema if needed, and add tests
+
+## Evidence
+
+- Workflow: feature-development-with-ui-and-backend
+- Files: backend/main.py, backend/routes/*.py, backend/services/*.py, frontend/components/*.tsx, frontend/app/*.ts[x], frontend/lib/api.ts, frontend/lib/types.ts, scripts/*.py, supabase/migrations/*.sql, supabase/schema.sql
+
+---
+id: doc-agent-jayesh-instinct-add-or-update-github-actions-automation
+trigger: "When someone wants to automate repo management tasks via GitHub Actions"
+confidence: 0.95
+domain: workflow
+source: repo-analysis
+source_repo: shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Instinct Add Or Update Github Actions Automation
+
+## Action
+
+Create or update workflow YAML, supporting scripts, documentation for commands, and test the workflow
+
+## Evidence
+
+- Workflow: add-or-update-github-actions-automation
+- Files: .github/workflows/*.yml, scripts/*.js, scripts/*.sh, .claude/commands/*.md
+
+---
+id: doc-agent-jayesh-instinct-improve-error-handling-and-user-feedback
+trigger: "When someone wants to make errors more understandable or improve progress reporting"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Instinct Improve Error Handling And User Feedback
+
+## Action
+
+Update app logic for friendly messages, add/improve progress indicators, collapse technical details, and test error scenarios
+
+## Evidence
+
+- Workflow: improve-error-handling-and-user-feedback
+- Files: app.py, backend/main.py, backend/routes/*.py, frontend/components/*.tsx
+
+---
+id: doc-agent-jayesh-instinct-add-or-update-documentation-and-readme
+trigger: "When someone wants to document new features, plans, or update the README"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: shindejayesh987/doc-agent-jayesh
+---
+
+# Doc Agent Jayesh Instinct Add Or Update Documentation And Readme
+
+## Action
+
+Create or update markdown documentation files, update .gitignore/config if needed, and commit with documentation-focused message
+
+## Evidence
+
+- Workflow: add-or-update-documentation-and-readme
+- Files: ARCHITECTURE.md, OPTIMIZATION_PLAN.md, FUTURE_SCOPE_QA.md, README.md, .gitignore
+
