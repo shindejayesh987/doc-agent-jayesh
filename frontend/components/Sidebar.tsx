@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { ProviderConfig } from "./ProviderConfig";
 import { ConversationHistory } from "./ConversationHistory";
+import { UserMenu } from "./UserMenu";
 import { getHealth, getDocuments } from "@/lib/api";
 import type { Document } from "@/lib/types";
 import {
@@ -86,6 +87,7 @@ export function AppSidebar({
 
   return (
     <Sidebar {...props}>
+      <UserMenu />
       <SidebarHeader className="border-b">
         <div className="flex items-center justify-between">
           <SidebarMenu>

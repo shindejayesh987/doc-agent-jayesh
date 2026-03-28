@@ -47,6 +47,14 @@ async def list_collections(request: Request):
             count_result = query.execute()
             coll["doc_count"] = count_result.count if count_result.count is not None else 0
 
+        # Add can_upload flag based on role
+        user_role = getattr(request.state, "role", "user")
+        for coll in collections:
+            if coll.get("is_global"):
+                coll["can_upload"] = user_role == "admin"
+            else:
+                coll["can_upload"] = True
+
         return collections
 
     except Exception as e:

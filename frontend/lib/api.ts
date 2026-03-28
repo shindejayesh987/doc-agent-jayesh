@@ -7,16 +7,24 @@ import type {
   Message,
   UploadResult,
 } from "./types";
+import { createClient } from "./supabase-browser";
 
 // All calls go through Next.js rewrites (same-origin), which proxies to FastAPI.
-// This avoids cross-origin cookie issues.
 const PREFIX = "/api/backend";
 
+async function getAccessToken(): Promise<string | null> {
+  const supabase = createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
+}
+
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = await getAccessToken();
   const res = await fetch(`${PREFIX}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...init?.headers,
     },
   });
@@ -61,9 +69,11 @@ export async function uploadDocuments(files: File[], collectionId?: string): Pro
   if (collectionId) {
     formData.append("collection_id", collectionId);
   }
+  const token = await getAccessToken();
   const res = await fetch(`${PREFIX}/documents/upload`, {
     method: "POST",
     body: formData,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: res.statusText }));

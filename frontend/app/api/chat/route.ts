@@ -1,4 +1,5 @@
 import { type UIMessage } from "ai";
+import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -25,16 +26,26 @@ export async function POST(req: Request) {
         .join("\n") || "",
   }));
 
-  // Read the user ID cookie set by our middleware and forward it
+  // Get Supabase session token to forward to backend
   const cookieStore = await cookies();
-  const userId = cookieStore.get("pageindex_user_id")?.value;
-  const cookieHeader = userId ? `pageindex_user_id=${userId}` : "";
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return cookieStore.getAll(); },
+        setAll() {},
+      },
+    },
+  );
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
 
   const backendRes = await fetch(`${API_URL}/api/chat`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Cookie: cookieHeader,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({
       messages: simpleMessages,

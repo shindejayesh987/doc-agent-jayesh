@@ -51,7 +51,10 @@ done
 # ── Step 3: Build Docker image ───────────────────────────────────────────────
 echo ""
 echo "→ Building Docker image..."
-docker build --platform linux/amd64 -t ${IMAGE_NAME} .
+docker build --platform linux/amd64 \
+    --build-arg NEXT_PUBLIC_SUPABASE_URL=https://tqmcdgmpgogzvxcbpqys.supabase.co \
+    --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRxbWNkZ21wZ29nenZ4Y2JwcXlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyMTE3NzgsImV4cCI6MjA4OTc4Nzc3OH0.Dyz5ztx6VvqG45dz1A4KEeysZjWg3z7rtBI7-bTN3CY \
+    -t ${IMAGE_NAME} .
 
 # ── Step 4: Push to Container Registry ───────────────────────────────────────
 echo ""
@@ -72,7 +75,8 @@ gcloud run deploy ${SERVICE_NAME} \
     --timeout=3600 \
     --min-instances=0 \
     --max-instances=3 \
-    --set-secrets="SUPABASE_URL=SUPABASE_URL:latest,SUPABASE_ANON_KEY=SUPABASE_ANON_KEY:latest,SUPABASE_SERVICE_KEY=SUPABASE_SERVICE_KEY:latest"
+    --set-secrets="SUPABASE_URL=SUPABASE_URL:latest,SUPABASE_ANON_KEY=SUPABASE_ANON_KEY:latest,SUPABASE_SERVICE_KEY=SUPABASE_SERVICE_KEY:latest,SUPABASE_JWT_SECRET=SUPABASE_JWT_SECRET:latest" \
+    --set-env-vars="ADMIN_EMAILS=jay98shinde@gmail.com,kadirlofca@outlook.com"
 
 # ── Step 6: Get URL ──────────────────────────────────────────────────────────
 echo ""

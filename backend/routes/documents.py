@@ -178,12 +178,13 @@ async def upload_documents(
     provider_key = user_session.get("provider_key", "gemini")
     provider_cfg = PROVIDERS.get(provider_key, PROVIDERS["gemini"])
 
-    # Only the admin script can upload to global collections.
-    # Regular users are forced to user_uploads to prevent privilege escalation.
+    # Only admins can upload to global collections.
+    # Regular users are forced to user_uploads.
     _GLOBAL_COLLECTIONS = {"curam_web_client", "curam_web_server"}
-    if collection_id in _GLOBAL_COLLECTIONS:
-        collection_id = "user_uploads"
-    is_global = False
+    user_role = getattr(request.state, "role", "user")
+    if collection_id in _GLOBAL_COLLECTIONS and user_role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can upload to shared collections")
+    is_global = collection_id in _GLOBAL_COLLECTIONS
 
     doc_ids = []
     for file in files:
@@ -229,18 +230,22 @@ async def delete_document(doc_id: str, request: Request):
 
     user_id = request.state.user_id
 
+    user_role = getattr(request.state, "role", "user")
+
     try:
-        # Check ownership — only the uploader can delete
+        # Check ownership — owner or admin can delete
         check = (
             sb.table("documents")
-            .select("id, user_id")
+            .select("id, user_id, is_global")
             .eq("id", doc_id)
             .single()
             .execute()
         )
         if not check.data:
             raise HTTPException(status_code=404, detail="Document not found")
-        if check.data.get("user_id") != user_id:
+        is_owner = check.data.get("user_id") == user_id
+        is_admin = user_role == "admin"
+        if not is_owner and not is_admin:
             raise HTTPException(status_code=403, detail="Cannot delete another user's document")
 
         sb.table("documents").delete().eq("id", doc_id).execute()

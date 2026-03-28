@@ -2,22 +2,20 @@
 main.py — FastAPI application for Doc Agent.
 
 Serves REST endpoints for document management, RAG chat, provider configuration,
-and conversation history. Uses Supabase for persistence and anonymous user sessions via cookies.
+and conversation history. Uses Supabase for persistence and Google OAuth via JWT.
 """
 import logging
 import os
-import re
 from pathlib import Path
-from uuid import uuid4
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-
-_UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+from starlette.responses import JSONResponse
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
+from backend.auth import verify_token
 from backend.routes import documents, chat, providers, conversations, collections
 
 # ── Logging ──────────────────────────────────────────────────────────────────
@@ -73,34 +71,43 @@ async def startup():
     app.state.sessions = {}
 
 
-# ── Anonymous user middleware ────────────────────────────────────────────────
-# Cookie is set by Next.js middleware (same-origin). Backend only reads it.
-_known_users: set = set()
+# ── JWT auth middleware ────────────────────────────────────────────────────────
+# Routes that don't require authentication
+_PUBLIC_PATHS = {"/api/health"}
 
 
 @app.middleware("http")
-async def user_session_middleware(request: Request, call_next):
-    user_id = request.cookies.get("pageindex_user_id")
+async def auth_middleware(request: Request, call_next):
+    path = request.url.path
 
-    # Validate UUID format to prevent filter injection via crafted cookies
-    if not user_id or not _UUID_RE.match(user_id):
-        user_id = str(uuid4())
+    # Skip auth for public endpoints
+    if path in _PUBLIC_PATHS:
+        request.state.user_id = None
+        request.state.email = None
+        request.state.role = "user"
+        return await call_next(request)
 
-    request.state.user_id = user_id
+    # Extract Bearer token
+    auth_header = request.headers.get("authorization", "")
+    token = auth_header.removeprefix("Bearer ").strip() if auth_header.startswith("Bearer ") else ""
 
-    # Create user in Supabase on first sight (idempotent)
-    if user_id not in _known_users:
-        sb = getattr(app.state, "supabase", None)
-        if sb:
-            try:
-                sb.table("users").insert({
-                    "id": user_id,
-                    "email": f"anon-{user_id[:8]}@pageindex.local",
-                    "display_name": f"Anonymous {user_id[:8]}",
-                }).execute()
-            except Exception:
-                pass  # Already exists or DB error — fine either way
-        _known_users.add(user_id)
+    if not token:
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Authentication required. Please sign in."},
+        )
+
+    # Validate JWT
+    auth_data = verify_token(token)
+    if not auth_data:
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Invalid or expired token. Please sign in again."},
+        )
+
+    request.state.user_id = auth_data["user_id"]
+    request.state.email = auth_data["email"]
+    request.state.role = auth_data["role"]
 
     response: Response = await call_next(request)
     return response

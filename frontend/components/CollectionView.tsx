@@ -19,6 +19,7 @@ interface CollectionViewProps {
   onToggleDoc: (docId: string) => void;
   onBack: () => void;
   onDocumentsUploaded: () => void;
+  userRole?: "admin" | "user";
 }
 
 export function CollectionView({
@@ -27,6 +28,7 @@ export function CollectionView({
   onToggleDoc,
   onBack,
   onDocumentsUploaded,
+  userRole = "user",
 }: CollectionViewProps) {
   const [collection, setCollection] = useState<Collection | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -89,10 +91,12 @@ export function CollectionView({
         )}
       </div>
 
-      {/* Upload section */}
-      <div className="mb-6">
-        <FileUploadArea collectionId={collectionId} onUploadComplete={handleUploadComplete} />
-      </div>
+      {/* Upload section — global collections: admin only; user_uploads: everyone */}
+      {(collectionId === "user_uploads" || userRole === "admin") && (
+        <div className="mb-6">
+          <FileUploadArea collectionId={collectionId} onUploadComplete={handleUploadComplete} />
+        </div>
+      )}
 
       {/* Document list */}
       {loading ? (

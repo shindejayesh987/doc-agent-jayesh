@@ -7,6 +7,7 @@ import { Thread } from "@/components/assistant-ui/thread";
 import { CollectionCards } from "@/components/CollectionCards";
 import { CollectionView } from "@/components/CollectionView";
 import { AppSidebar } from "@/components/Sidebar";
+import { useAuth } from "@/components/AuthProvider";
 import {
   SidebarInset,
   SidebarProvider,
@@ -16,6 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { LayoutGridIcon } from "lucide-react";
 
 export const Assistant = () => {
+  const { user, loading } = useAuth();
   const [activeDocIds, setActiveDocIds] = useState<string[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -60,6 +62,14 @@ export const Assistant = () => {
   const showCollectionCards = activeCollection === null && activeDocIds.length === 0;
   const showCollectionView = activeCollection !== null;
   const showChat = activeDocIds.length > 0;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-zinc-950">
+        <div className="text-zinc-400">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
@@ -111,6 +121,7 @@ export const Assistant = () => {
                   onToggleDoc={handleToggleDoc}
                   onBack={handleBackToCollections}
                   onDocumentsUploaded={handleDocumentsUploaded}
+                  userRole={user?.role}
                 />
               )}
 
