@@ -19,13 +19,23 @@ async function proxyToBackend(
 
   // Read Supabase session server-side from cookies
   const cookieStore = await cookies();
+  const allCookies = cookieStore.getAll();
+
+  // Debug: log available cookies and env vars (remove after debugging)
+  const supabaseCookies = allCookies
+    .filter((c) => c.name.startsWith("sb-"))
+    .map((c) => `${c.name}=${c.value.substring(0, 20)}...`);
+  console.log(
+    `[proxy] ${backendPath} | cookies: ${allCookies.length} total, sb-*: [${supabaseCookies.join(", ")}] | SUPABASE_URL: ${process.env.NEXT_PUBLIC_SUPABASE_URL ? "set" : "MISSING"}`,
+  );
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {
-          return cookieStore.getAll();
+          return allCookies;
         },
         setAll() {},
       },
@@ -35,6 +45,10 @@ async function proxyToBackend(
     data: { session },
   } = await supabase.auth.getSession();
   const token = session?.access_token;
+
+  console.log(
+    `[proxy] ${backendPath} | session: ${session ? "found" : "NULL"} | token: ${token ? "yes" : "no"}`,
+  );
 
   // Build headers — forward originals, inject auth, remove hop-by-hop headers
   const headers = new Headers();

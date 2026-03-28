@@ -50,6 +50,12 @@ export async function GET(request: Request) {
 
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      // Debug: log cookies being set (remove after debugging)
+      console.log(
+        `[auth-callback] Setting ${responseCookies.length} cookies:`,
+        responseCookies.map((c) => `${c.name} (${c.value.length} chars)`),
+      );
+
       const response = NextResponse.redirect(`${origin}${next}`);
       // Explicitly set auth cookies on the redirect response so the
       // browser receives them regardless of how Next.js handles cookieStore.
