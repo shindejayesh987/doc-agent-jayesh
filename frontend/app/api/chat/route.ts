@@ -34,7 +34,11 @@ export async function POST(req: Request) {
     {
       cookies: {
         getAll() { return cookieStore.getAll(); },
-        setAll() {},
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, { ...options, httpOnly: false }),
+          );
+        },
       },
     },
   );
