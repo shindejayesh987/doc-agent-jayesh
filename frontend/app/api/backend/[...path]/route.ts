@@ -23,14 +23,6 @@ async function proxyToBackend(
   const cookieStore = await cookies();
   const allCookies = cookieStore.getAll();
 
-  // Debug: log available cookies (remove after debugging)
-  const supabaseCookies = allCookies
-    .filter((c) => c.name.startsWith("sb-"))
-    .map((c) => `${c.name}=${c.value.substring(0, 20)}...`);
-  console.log(
-    `[proxy] ${backendPath} | cookies: ${allCookies.length} total, sb-*: [${supabaseCookies.join(", ")}] | SUPABASE_URL: ${process.env.NEXT_PUBLIC_SUPABASE_URL ? "set" : "MISSING"}`,
-  );
-
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -47,10 +39,6 @@ async function proxyToBackend(
     data: { session },
   } = await supabase.auth.getSession();
   const token = session?.access_token;
-
-  console.log(
-    `[proxy] ${backendPath} | session: ${session ? "found" : "NULL"} | token: ${token ? "yes" : "no"}`,
-  );
 
   // Build headers
   const headers = new Headers();
@@ -104,7 +92,7 @@ async function proxyToBackend(
 
       if (isConnectionRefused && attempt < MAX_RETRIES) {
         console.log(
-          `[proxy] ${backendPath} | backend not ready, retry ${attempt + 1}/${MAX_RETRIES} in ${RETRY_DELAY_MS}ms`,
+          `[proxy] ${backendPath} | backend not ready, retry ${attempt + 1}/${MAX_RETRIES}`,
         );
         await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
         continue;

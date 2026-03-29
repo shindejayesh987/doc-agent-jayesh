@@ -92,15 +92,14 @@ async def auth_middleware(request: Request, call_next):
     token = auth_header.removeprefix("Bearer ").strip() if auth_header.startswith("Bearer ") else ""
 
     if not token:
-        logger.warning("No token in request to %s", path)
         return JSONResponse(
             status_code=401,
             content={"detail": "Authentication required. Please sign in."},
         )
 
-    # Validate JWT
-    logger.info("Verifying token for %s (token length: %d)", path, len(token))
-    auth_data = verify_token(token)
+    # Validate token via Supabase API (primary) or local JWT (fallback)
+    sb = getattr(request.app.state, "supabase", None)
+    auth_data = verify_token(token, supabase_client=sb)
     if not auth_data:
         return JSONResponse(
             status_code=401,
