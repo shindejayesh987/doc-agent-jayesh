@@ -70,9 +70,19 @@ def max_score(scores: Iterable[Tuple[str, float]]) -> float:
     return best
 
 
-def ground_answer(answer: str, context: str, *, k: int = 3) -> float:
-    """Return a lexical overlap score between answer text and retrieved context."""
-    return jaccard_similarity(
-        compute_shingles(answer, k=k),
-        compute_shingles(context, k=k),
-    )
+def ground_answer(answer: str, context: str, *, k: int = 2) -> float:
+    """
+    Return a containment score: what fraction of the answer's shingles
+    appear in the retrieved context.
+
+    Uses containment (|A ∩ B| / |A|) instead of Jaccard (|A ∩ B| / |A ∪ B|)
+    because the context is typically much larger than the answer, which
+    unfairly deflates Jaccard for short, accurate answers.
+    """
+    answer_shingles = compute_shingles(answer, k=k)
+    if not answer_shingles:
+        return 0.0
+    context_shingles = compute_shingles(context, k=k)
+    if not context_shingles:
+        return 0.0
+    return len(answer_shingles & context_shingles) / len(answer_shingles)
