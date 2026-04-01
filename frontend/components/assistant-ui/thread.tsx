@@ -24,6 +24,7 @@ import {
 import {
   ArrowDownIcon,
   ArrowUpIcon,
+  AlertTriangleIcon,
   CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -221,11 +222,47 @@ const AssistantMessage: FC = () => {
         <MessageError />
       </div>
 
-      <div className="aui-assistant-message-footer mt-1 ml-2 flex">
+      <div className="aui-assistant-message-footer mt-1 ml-2 flex flex-wrap items-center gap-2">
+        <GroundingBadge />
         <BranchPicker />
         <AssistantActionBar />
       </div>
     </MessagePrimitive.Root>
+  );
+};
+
+const LOW_GROUNDING_THRESHOLD = 0.02;
+
+const GroundingBadge: FC = () => {
+  const score = useAuiState((s) => {
+    const custom = s.message.metadata.custom as { lexicalGroundingScore?: unknown };
+    return typeof custom?.lexicalGroundingScore === "number"
+      ? custom.lexicalGroundingScore
+      : null;
+  });
+
+  if (score == null) return null;
+
+  const lowGrounding = score < LOW_GROUNDING_THRESHOLD;
+  return (
+    <div
+      className={cn(
+        "rounded-full border px-2 py-0.5 text-[11px] font-medium",
+        lowGrounding
+          ? "border-amber-300/60 bg-amber-500/10 text-amber-700 dark:border-amber-400/30 dark:text-amber-300"
+          : "border-emerald-300/60 bg-emerald-500/10 text-emerald-700 dark:border-emerald-400/30 dark:text-emerald-300",
+      )}
+      title={
+        lowGrounding
+          ? "Low lexical overlap between the answer and retrieved context."
+          : "Lexical overlap between the answer and retrieved context."
+      }
+    >
+      <span className="inline-flex items-center gap-1">
+        {lowGrounding && <AlertTriangleIcon className="size-3" />}
+        Grounding {score.toFixed(3)}
+      </span>
+    </div>
   );
 };
 

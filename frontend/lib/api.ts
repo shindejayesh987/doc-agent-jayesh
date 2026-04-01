@@ -128,7 +128,7 @@ export async function chat(
   messages: Array<{ role: string; content: string }>,
   docIds: string[],
   conversationId?: string,
-): Promise<{ role: string; content: string; latency_ms: number }> {
+): Promise<{ role: string; content: string; latency_ms: number; lexical_grounding_score: number }> {
   return apiFetch("/chat", {
     method: "POST",
     body: JSON.stringify({

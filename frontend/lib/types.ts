@@ -53,6 +53,7 @@ export interface Message {
   sources?: Array<{ doc_id: string; node_id: string; title: string }>;
   model_used?: string;
   latency_ms?: number;
+  lexical_grounding_score?: number;
   created_at?: string;
 }
 

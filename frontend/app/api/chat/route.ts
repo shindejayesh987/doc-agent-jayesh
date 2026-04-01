@@ -72,6 +72,10 @@ export async function POST(req: Request) {
 
   const result = await backendRes.json();
   const content = result.content || "";
+  const lexicalGroundingScore =
+    typeof result.lexical_grounding_score === "number"
+      ? result.lexical_grounding_score
+      : undefined;
 
   // Return as AI SDK v6 UIMessageStream format (SSE with JSON chunks)
   // Each chunk needs an `id` to identify the text part
@@ -79,6 +83,20 @@ export async function POST(req: Request) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     start(controller) {
+      if (lexicalGroundingScore !== undefined) {
+        controller.enqueue(
+          encoder.encode(
+            `data: ${JSON.stringify({
+              type: "message-metadata",
+              messageMetadata: {
+                custom: {
+                  lexicalGroundingScore,
+                },
+              },
+            })}\n\n`,
+          ),
+        );
+      }
       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "text-start", id: partId })}\n\n`));
       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "text-delta", id: partId, delta: content })}\n\n`));
       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "text-end", id: partId })}\n\n`));

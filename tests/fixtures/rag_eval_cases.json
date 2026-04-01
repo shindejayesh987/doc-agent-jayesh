@@ -1,0 +1,116 @@
+[
+  {
+    "id": "deploy_shortlist_hit",
+    "type": "payload",
+    "query": "How do we rotate the supabase service key for deploy?",
+    "documents": [
+      {
+        "name": "Deploy Guide",
+        "tree": {
+          "structure": [
+            { "node_id": "1", "title": "Collections", "start_index": 1, "end_index": 1, "nodes": [] },
+            { "node_id": "2", "title": "Deployment", "start_index": 2, "end_index": 2, "nodes": [] }
+          ]
+        },
+        "pages": [
+          ["collections and uploads overview", 100],
+          ["cloud run deploy with supabase service key rotation guidance", 100]
+        ]
+      }
+    ],
+    "expected": {
+      "used_lexical_shortlist": true,
+      "top_node_id": "2",
+      "duplicates_suppressed": 0
+    }
+  },
+  {
+    "id": "weak_signal_fallback",
+    "type": "payload",
+    "query": "What does it say?",
+    "documents": [
+      {
+        "name": "Deploy Guide",
+        "tree": {
+          "structure": [
+            { "node_id": "1", "title": "Deployment", "start_index": 1, "end_index": 1, "nodes": [] },
+            { "node_id": "2", "title": "Collections", "start_index": 2, "end_index": 2, "nodes": [] }
+          ]
+        },
+        "pages": [
+          ["cloud run deploy with supabase service key rotation guidance", 100],
+          ["collections and uploads overview", 100]
+        ]
+      }
+    ],
+    "expected": {
+      "used_lexical_shortlist": false
+    }
+  },
+  {
+    "id": "duplicate_shortlist_suppression",
+    "type": "payload",
+    "query": "How do we rotate the supabase service key for deploy?",
+    "documents": [
+      {
+        "name": "Deploy Guide",
+        "tree": {
+          "structure": [
+            { "node_id": "1", "title": "Deploy A", "start_index": 1, "end_index": 1, "nodes": [] },
+            { "node_id": "2", "title": "Deploy B", "start_index": 2, "end_index": 2, "nodes": [] },
+            { "node_id": "3", "title": "Collections", "start_index": 3, "end_index": 3, "nodes": [] }
+          ]
+        },
+        "pages": [
+          ["cloud run deploy with supabase service key rotation guidance", 100],
+          ["cloud run deploy with supabase service key rotation guidance", 100],
+          ["collections and uploads overview", 100]
+        ]
+      }
+    ],
+    "expected": {
+      "used_lexical_shortlist": true,
+      "top_node_id": "1",
+      "duplicates_suppressed": 1
+    }
+  },
+  {
+    "id": "multi_doc_context_focus",
+    "type": "run",
+    "query": "How do we rotate the supabase service key for deploy?",
+    "documents": [
+      {
+        "name": "Deploy Guide",
+        "tree": {
+          "structure": [
+            { "node_id": "1", "title": "Collections", "start_index": 1, "end_index": 1, "nodes": [] },
+            { "node_id": "2", "title": "Deployment", "start_index": 2, "end_index": 2, "nodes": [] }
+          ]
+        },
+        "pages": [
+          ["collections and uploads overview", 100],
+          ["cloud run deploy with supabase service key rotation guidance", 100]
+        ]
+      },
+      {
+        "name": "Collections Guide",
+        "tree": {
+          "structure": [
+            { "node_id": "1", "title": "Collections", "start_index": 1, "end_index": 1, "nodes": [] },
+            { "node_id": "2", "title": "Search", "start_index": 2, "end_index": 2, "nodes": [] }
+          ]
+        },
+        "pages": [
+          ["collections and uploads overview", 100],
+          ["search filters and browsing collections", 100]
+        ]
+      }
+    ],
+    "expected": {
+      "context_docs_present": ["Deploy Guide"],
+      "context_docs_absent": ["Collections Guide"],
+      "positive_signal_docs": ["Deploy Guide"],
+      "zero_signal_docs": ["Collections Guide"]
+    }
+  }
+]

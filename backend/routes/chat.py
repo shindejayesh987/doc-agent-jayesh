@@ -91,10 +91,21 @@ async def chat(body: ChatRequest, request: Request):
 
     provider_key = user_session.get("provider_key", "")
     provider_model = user_session.get("provider_model", "")
+    lexical_grounding_score = 0.0
 
     start_t = time.time()
     try:
-        answer = await run_rag_multi(query, doc_data_list, provider_obj, history[:-1])
+        result = await run_rag_multi(query, doc_data_list, provider_obj, history[:-1])
+        answer = result["answer"]
+        lexical_grounding_score = result["lexical_grounding_score"]
+        retrieval_telemetry = result.get("retrieval_telemetry", [])
+        logger.info(
+            "Chat telemetry user=%s docs=%d grounding=%0.3f retrieval=%s",
+            user_id[:8],
+            len(doc_data_list),
+            lexical_grounding_score,
+            retrieval_telemetry,
+        )
     except Exception as exc:
         answer = friendly_error(exc, provider_key, provider_model)
 
@@ -132,5 +143,6 @@ async def chat(body: ChatRequest, request: Request):
     return {
         "role": "assistant",
         "content": answer,
+        "lexical_grounding_score": lexical_grounding_score,
         "latency_ms": latency_ms,
     }
